@@ -1,11 +1,15 @@
 from contextlib import asynccontextmanager
 from datetime import date
+from pathlib import Path
 from typing import Literal, Optional
 
 from fastapi import FastAPI, HTTPException, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_validator
 
 from app import db
+
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
@@ -89,3 +93,7 @@ def delete_todo(todo_id: int) -> Response:
     if not db.delete_todo(todo_id):
         raise HTTPException(status_code=404, detail="Todo not found")
     return Response(status_code=204)
+
+
+# Mounted last so the /api and /healthz routes above take precedence.
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
