@@ -93,3 +93,11 @@ def delete_todo(todo_id: int) -> bool:
         cur = conn.execute("DELETE FROM todos WHERE id = ?", (todo_id,))
         conn.commit()
         return cur.rowcount > 0
+
+
+def delete_done_todos() -> int:
+    """Delete every todo with done = 1. Returns how many rows were deleted."""
+    with closing(_connect()) as conn:
+        cur = conn.execute("DELETE FROM todos WHERE done = 1")
+        conn.commit()
+        return cur.rowcount

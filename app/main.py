@@ -99,6 +99,13 @@ def create_todo(body: TodoCreate) -> dict:
     return db.create_todo(body.title, due)
 
 
+@app.delete("/api/todos")
+def clear_done_todos(status: Literal["done"]) -> dict:
+    # `status` is required and only "done" is accepted; anything else (or a
+    # missing value) is rejected by FastAPI with 422.
+    return {"deleted": db.delete_done_todos()}
+
+
 @app.patch("/api/todos/{todo_id}")
 def update_todo(todo_id: int, body: TodoUpdate) -> dict:
     changes = {}
