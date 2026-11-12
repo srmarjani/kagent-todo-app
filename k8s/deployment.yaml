@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kagent-todo-app
+  namespace: todo
+  labels:
+    app: kagent-todo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kagent-todo-app
+  template:
+    metadata:
+      labels:
+        app: kagent-todo-app
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/srmarjani/kagent-todo-app:594cf43a451e0c62e4984b54cadbb6a03c902d74
+          ports:
+            - containerPort: 8000
+          env:
+            - name: TODO_DB_PATH
+              value: /data/todo.db
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        # emptyDir for now: data is lost when the pod restarts.
+        - name: data
+          emptyDir: {}
