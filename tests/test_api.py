@@ -133,3 +133,87 @@ def test_create_invalid_due_date_422(client):
         "/api/todos", json={"title": "bad date", "due_date": "not-a-date"}
     )
     assert response.status_code == 422
+
+
+# --- due_date: valid, invalid and missing ---------------------------------
+
+
+def test_create_due_date_missing_is_null(client):
+    response = client.post("/api/todos", json={"title": "no date"})
+    assert response.status_code == 201
+    assert response.json()["due_date"] is None
+
+
+def test_create_due_date_null_is_null(client):
+    response = client.post("/api/todos", json={"title": "null date", "due_date": None})
+    assert response.status_code == 201
+    assert response.json()["due_date"] is None
+
+
+def test_create_due_date_valid_is_returned_and_listed(client):
+    created = client.post(
+        "/api/todos", json={"title": "dated", "due_date": "2030-02-28"}
+    ).json()
+    assert created["due_date"] == "2030-02-28"
+    listed = client.get("/api/todos").json()
+    assert listed[0]["due_date"] == "2030-02-28"
+
+
+def test_create_due_date_leap_day_valid(client):
+    response = client.post(
+        "/api/todos", json={"title": "leap", "due_date": "2028-02-29"}
+    )
+    assert response.status_code == 201
+    assert response.json()["due_date"] == "2028-02-29"
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "",
+        "not-a-date",
+        "2030-13-01",  # month out of range
+        "2030-02-30",  # day does not exist
+        "2029-02-29",  # not a leap year
+        "2030-1-5",  # not zero padded
+        "30-01-2030",
+        "2030/01/31",
+        "20300131",
+        "2030-01-31T00:00:00",
+        "2030-01-31 ",
+        1893456000,
+        True,
+        ["2030-01-31"],
+    ],
+)
+def test_create_due_date_invalid_422(client, bad):
+    response = client.post("/api/todos", json={"title": "bad", "due_date": bad})
+    assert response.status_code == 422
+    assert client.get("/api/todos").json() == []
+
+
+def test_patch_due_date_valid(client):
+    todo_id = client.post("/api/todos", json={"title": "t"}).json()["id"]
+    response = client.patch(f"/api/todos/{todo_id}", json={"due_date": "2031-12-24"})
+    assert response.status_code == 200
+    assert response.json()["due_date"] == "2031-12-24"
+
+
+@pytest.mark.parametrize("bad", ["", "tomorrow", "2030-02-30", "2030-01-31T10:00:00", 20300131])
+def test_patch_due_date_invalid_422(client, bad):
+    todo_id = client.post(
+        "/api/todos", json={"title": "t", "due_date": "2030-01-01"}
+    ).json()["id"]
+    response = client.patch(f"/api/todos/{todo_id}", json={"due_date": bad})
+    assert response.status_code == 422
+    # The stored value is unchanged.
+    assert client.get("/api/todos").json()[0]["due_date"] == "2030-01-01"
+
+
+def test_patch_without_due_date_keeps_it(client):
+    todo_id = client.post(
+        "/api/todos", json={"title": "t", "due_date": "2030-01-01"}
+    ).json()["id"]
+    response = client.patch(f"/api/todos/{todo_id}", json={"done": True})
+    assert response.status_code == 200
+    assert response.json()["due_date"] == "2030-01-01"
