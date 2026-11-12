@@ -20,10 +20,29 @@ async function request(url, options) {
   return response.status === 204 ? null : response.json();
 }
 
-function renderTodo(todo) {
+// Today's date as YYYY-MM-DD in the browser's local time zone.
+function todayString() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return now.getFullYear() + "-" + month + "-" + day;
+}
+
+// An open todo is overdue when its due date is before today.
+// YYYY-MM-DD strings compare correctly as plain strings.
+function isOverdue(todo, today) {
+  return !todo.done && !!todo.due_date && todo.due_date < today;
+}
+
+function renderTodo(todo, today) {
+  const overdue = isOverdue(todo, today);
+
   const item = document.createElement("li");
   item.id = "todo-" + todo.id;
-  if (todo.done) item.className = "done";
+  const classes = [];
+  if (todo.done) classes.push("done");
+  if (overdue) classes.push("overdue");
+  item.className = classes.join(" ");
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
@@ -38,7 +57,10 @@ function renderTodo(todo) {
 
   const due = document.createElement("span");
   due.className = "todo-due";
-  due.textContent = todo.due_date ? "due " + todo.due_date : "";
+  due.id = "due-" + todo.id;
+  if (todo.due_date) {
+    due.textContent = "due " + todo.due_date + (overdue ? " (overdue)" : "");
+  }
 
   const remove = document.createElement("button");
   remove.id = "delete-" + todo.id;
@@ -53,7 +75,8 @@ function renderTodo(todo) {
 async function loadTodos() {
   try {
     const todos = await request(API + "?status=" + encodeURIComponent(filterSelect.value));
-    list.replaceChildren(...todos.map(renderTodo));
+    const today = todayString();
+    list.replaceChildren(...todos.map((todo) => renderTodo(todo, today)));
     emptyMessage.hidden = todos.length > 0;
     showError("");
   } catch (err) {

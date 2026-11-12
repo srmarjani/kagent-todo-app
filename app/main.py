@@ -1,7 +1,8 @@
+import re
 from contextlib import asynccontextmanager
 from datetime import date
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
@@ -10,6 +11,8 @@ from pydantic import BaseModel, field_validator
 from app import db
 
 STATIC_DIR = Path(__file__).parent / "static"
+
+DATE_PATTERN = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 
 
 @asynccontextmanager
@@ -28,6 +31,18 @@ def _clean_title(value: str) -> str:
     return value
 
 
+def _parse_due_date(value: Any) -> Optional[date]:
+    """Accept only null or a real calendar date written exactly as YYYY-MM-DD."""
+    if value is None:
+        return None
+    if not isinstance(value, str) or not DATE_PATTERN.fullmatch(value):
+        raise ValueError("due_date must be YYYY-MM-DD or null")
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        raise ValueError("due_date must be a valid date in YYYY-MM-DD format")
+
+
 class TodoCreate(BaseModel):
     title: str
     due_date: Optional[date] = None
@@ -36,6 +51,11 @@ class TodoCreate(BaseModel):
     @classmethod
     def title_not_empty(cls, value: str) -> str:
         return _clean_title(value)
+
+    @field_validator("due_date", mode="before")
+    @classmethod
+    def due_date_format(cls, value: Any) -> Optional[date]:
+        return _parse_due_date(value)
 
 
 class TodoUpdate(BaseModel):
@@ -56,6 +76,11 @@ class TodoUpdate(BaseModel):
         if value is None:
             raise ValueError("done must not be null")
         return value
+
+    @field_validator("due_date", mode="before")
+    @classmethod
+    def due_date_format(cls, value: Any) -> Optional[date]:
+        return _parse_due_date(value)
 
 
 @app.get("/healthz")
