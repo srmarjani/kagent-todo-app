@@ -122,6 +122,55 @@ def test_delete_missing_id_404(client):
     assert response.status_code == 404
 
 
+# --- clear completed: DELETE /api/todos?status=done -------------------------
+
+
+def test_clear_done_deletes_only_done_todos(client):
+    open_a = client.post("/api/todos", json={"title": "open a"}).json()["id"]
+    done_a = client.post("/api/todos", json={"title": "done a"}).json()["id"]
+    open_b = client.post("/api/todos", json={"title": "open b"}).json()["id"]
+    done_b = client.post("/api/todos", json={"title": "done b"}).json()["id"]
+    client.patch(f"/api/todos/{done_a}", json={"done": True})
+    client.patch(f"/api/todos/{done_b}", json={"done": True})
+
+    response = client.delete("/api/todos?status=done")
+    assert response.status_code == 200
+    assert response.json() == {"deleted": 2}
+
+    remaining = client.get("/api/todos").json()
+    assert [t["id"] for t in remaining] == [open_b, open_a]
+    assert all(t["done"] is False for t in remaining)
+
+
+def test_clear_done_returns_zero_when_none_done(client):
+    open_id = client.post("/api/todos", json={"title": "still open"}).json()["id"]
+
+    response = client.delete("/api/todos?status=done")
+    assert response.status_code == 200
+    assert response.json() == {"deleted": 0}
+    assert [t["id"] for t in client.get("/api/todos").json()] == [open_id]
+
+
+def test_clear_done_returns_zero_on_empty_list(client):
+    response = client.delete("/api/todos?status=done")
+    assert response.status_code == 200
+    assert response.json() == {"deleted": 0}
+
+
+@pytest.mark.parametrize(
+    "query",
+    ["", "?status=open", "?status=all", "?status=bogus", "?status="],
+)
+def test_clear_done_requires_status_done_422(client, query):
+    todo_id = client.post("/api/todos", json={"title": "done one"}).json()["id"]
+    client.patch(f"/api/todos/{todo_id}", json={"done": True})
+
+    response = client.delete(f"/api/todos{query}")
+    assert response.status_code == 422
+    # Nothing was deleted.
+    assert [t["id"] for t in client.get("/api/todos").json()] == [todo_id]
+
+
 def test_create_empty_title_422(client):
     assert client.post("/api/todos", json={"title": ""}).status_code == 422
     assert client.post("/api/todos", json={"title": "   "}).status_code == 422
