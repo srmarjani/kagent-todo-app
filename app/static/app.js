@@ -4,6 +4,7 @@ const form = document.getElementById("add-form");
 const titleInput = document.getElementById("title-input");
 const dueInput = document.getElementById("due-input");
 const filterSelect = document.getElementById("filter-select");
+const clearButton = document.getElementById("clear-completed");
 const list = document.getElementById("todo-list");
 const emptyMessage = document.getElementById("empty-message");
 const errorBox = document.getElementById("error");
@@ -72,6 +73,17 @@ function renderTodo(todo, today) {
   return item;
 }
 
+// Enable "Clear completed" only when at least one todo is done.
+// Asks the API for done todos so it also works while the filter is "Open".
+async function updateClearButton() {
+  try {
+    const doneTodos = await request(API + "?status=done");
+    clearButton.disabled = doneTodos.length === 0;
+  } catch (err) {
+    clearButton.disabled = true;
+  }
+}
+
 async function loadTodos() {
   try {
     const todos = await request(API + "?status=" + encodeURIComponent(filterSelect.value));
@@ -82,6 +94,7 @@ async function loadTodos() {
   } catch (err) {
     showError("Could not load todos: " + err.message);
   }
+  await updateClearButton();
 }
 
 async function toggleTodo(id, done) {
@@ -102,6 +115,15 @@ async function deleteTodo(id) {
     await request(API + "/" + id, { method: "DELETE" });
   } catch (err) {
     showError("Could not delete todo: " + err.message);
+  }
+  await loadTodos();
+}
+
+async function clearCompleted() {
+  try {
+    await request(API + "?status=done", { method: "DELETE" });
+  } catch (err) {
+    showError("Could not clear completed todos: " + err.message);
   }
   await loadTodos();
 }
@@ -131,5 +153,6 @@ form.addEventListener("submit", async (event) => {
 });
 
 filterSelect.addEventListener("change", loadTodos);
+clearButton.addEventListener("click", clearCompleted);
 
 loadTodos();
