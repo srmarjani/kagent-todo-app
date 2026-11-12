@@ -15,6 +15,7 @@
     .todo-due { color: #555; font-size: 0.85rem; }
     li.overdue .todo-due { color: #b00020; font-weight: bold; }
     #error { color: #b00020; min-height: 1.2rem; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
   </style>
 </head>
 <body>
@@ -28,14 +29,17 @@
     <button id="add-button" type="submit">Add</button>
   </form>
 
-  <p>
-    <label for="filter-select">Show</label>
-    <select id="filter-select">
-      <option value="all">All</option>
-      <option value="open">Open</option>
-      <option value="done">Done</option>
-    </select>
-  </p>
+  <div class="toolbar">
+    <p>
+      <label for="filter-select">Show</label>
+      <select id="filter-select">
+        <option value="all">All</option>
+        <option value="open">Open</option>
+        <option value="done">Done</option>
+      </select>
+    </p>
+    <button id="clear-completed" type="button" disabled>Clear completed</button>
+  </div>
 
   <p id="error" role="alert"></p>
   <ul id="todo-list"></ul>
