@@ -6,6 +6,8 @@
   <title>Todo</title>
   <style>
     body { font-family: sans-serif; max-width: 36rem; margin: 2rem auto; padding: 0 1rem; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+    #stats { color: #555; margin: 0; }
     form { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
     #title-input { flex: 1; min-width: 10rem; }
     ul { list-style: none; padding: 0; }
@@ -19,7 +21,10 @@
   </style>
 </head>
 <body>
-  <h1>Todo</h1>
+  <header>
+    <h1>Todo</h1>
+    <p id="stats" aria-live="polite">– open · – done</p>
+  </header>
 
   <form id="add-form">
     <label for="title-input">Title</label>
