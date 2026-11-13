@@ -8,6 +8,7 @@ const clearButton = document.getElementById("clear-completed");
 const list = document.getElementById("todo-list");
 const emptyMessage = document.getElementById("empty-message");
 const errorBox = document.getElementById("error");
+const statsBox = document.getElementById("stats");
 
 function showError(message) {
   errorBox.textContent = message || "";
@@ -73,6 +74,16 @@ function renderTodo(todo, today) {
   return item;
 }
 
+// Show "N open · M done" in the header, from GET /api/todos/stats.
+async function updateStats() {
+  try {
+    const stats = await request(API + "/stats");
+    statsBox.textContent = stats.open + " open · " + stats.done + " done";
+  } catch (err) {
+    statsBox.textContent = "– open · – done";
+  }
+}
+
 // Enable "Clear completed" only when at least one todo is done.
 // Asks the API for done todos so it also works while the filter is "Open".
 async function updateClearButton() {
@@ -84,6 +95,8 @@ async function updateClearButton() {
   }
 }
 
+// Every add, toggle, delete and clear ends in loadTodos(), so the counts
+// are refreshed here, in one place.
 async function loadTodos() {
   try {
     const todos = await request(API + "?status=" + encodeURIComponent(filterSelect.value));
@@ -94,6 +107,7 @@ async function loadTodos() {
   } catch (err) {
     showError("Could not load todos: " + err.message);
   }
+  await updateStats();
   await updateClearButton();
 }
 
