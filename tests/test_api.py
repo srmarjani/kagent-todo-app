@@ -68,6 +68,40 @@ def test_list_todos_invalid_status(client):
     assert client.get("/api/todos?status=bogus").status_code == 422
 
 
+# --- stats: GET /api/todos/stats --------------------------------------------
+
+
+def test_stats_empty(client):
+    response = client.get("/api/todos/stats")
+    assert response.status_code == 200
+    assert response.json() == {"open": 0, "done": 0}
+
+
+def test_stats_counts_open_and_done(client):
+    client.post("/api/todos", json={"title": "open a"})
+    client.post("/api/todos", json={"title": "open b"})
+    done_a = client.post("/api/todos", json={"title": "done a"}).json()["id"]
+    done_b = client.post("/api/todos", json={"title": "done b"}).json()["id"]
+    done_c = client.post("/api/todos", json={"title": "done c"}).json()["id"]
+    for todo_id in (done_a, done_b, done_c):
+        client.patch(f"/api/todos/{todo_id}", json={"done": True})
+
+    response = client.get("/api/todos/stats")
+    assert response.status_code == 200
+    assert response.json() == {"open": 2, "done": 3}
+
+
+def test_stats_updates_after_toggle_and_delete(client):
+    todo_id = client.post("/api/todos", json={"title": "t"}).json()["id"]
+    assert client.get("/api/todos/stats").json() == {"open": 1, "done": 0}
+
+    client.patch(f"/api/todos/{todo_id}", json={"done": True})
+    assert client.get("/api/todos/stats").json() == {"open": 0, "done": 1}
+
+    client.delete(f"/api/todos/{todo_id}")
+    assert client.get("/api/todos/stats").json() == {"open": 0, "done": 0}
+
+
 def test_toggle_done(client):
     todo_id = client.post("/api/todos", json={"title": "toggle me"}).json()["id"]
 

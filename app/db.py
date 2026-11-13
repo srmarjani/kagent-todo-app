@@ -50,6 +50,20 @@ def list_todos(status: str = "all") -> list:
     return [_row_to_todo(r) for r in rows]
 
 
+def count_todos() -> dict:
+    """Return how many todos are open (done = 0) and done (done = 1)."""
+    with closing(_connect()) as conn:
+        row = conn.execute(
+            """
+            SELECT
+                COALESCE(SUM(CASE WHEN done = 0 THEN 1 ELSE 0 END), 0) AS open,
+                COALESCE(SUM(CASE WHEN done = 1 THEN 1 ELSE 0 END), 0) AS done
+            FROM todos
+            """
+        ).fetchone()
+    return {"open": int(row["open"]), "done": int(row["done"])}
+
+
 def get_todo(todo_id: int) -> Optional[dict]:
     with closing(_connect()) as conn:
         row = conn.execute(
