@@ -93,6 +93,11 @@ def list_todos(status: Literal["all", "open", "done"] = "all") -> list:
     return db.list_todos(status)
 
 
+@app.get("/api/todos/stats")
+def todo_stats() -> dict:
+    return db.count_todos()
+
+
 @app.post("/api/todos", status_code=201)
 def create_todo(body: TodoCreate) -> dict:
     due = body.due_date.isoformat() if body.due_date else None
